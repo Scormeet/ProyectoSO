@@ -1,10 +1,22 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <unistd.h>
+# include <pwd.h>
 # include <sys/types.h>
 # include <sys/wait.h>
 # include <string.h>
+# include <limits.h>
 # define T_ARGS 128
+#define _PROGRAM_NAME "whoami"
+
+void getPrompt() 
+{ 
+    char cwd[1024]; 
+    getcwd(cwd, sizeof(cwd)); 
+
+    printf("~:%s> ", cwd); 
+} 
+
 
 int main(int argc, char *argv[]){
 	int pid,
@@ -21,8 +33,20 @@ int main(int argc, char *argv[]){
 	char delim[] = " ";
 	
 	while(!salir){
-		argVect[0] = "./ejercicio1";
-		printf("USUARIO$> ");
+		argVect[0] = "./exec";
+		printf("\n");
+		char* username = getenv("USER"); 
+    	printf("%s@", username); 
+		char hostname[HOST_NAME_MAX];
+		int result;
+  		result = gethostname(hostname, HOST_NAME_MAX);
+  		if (result)
+    	{
+      		perror("gethostname");
+      		return EXIT_FAILURE;
+    	}
+		printf("%s",hostname);
+		getPrompt();
 		fgets(args, sizeof(args), stdin);
 		
 		args[strlen(args)-1] = '\0';
