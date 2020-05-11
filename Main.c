@@ -9,30 +9,24 @@
 # define T_ARGS 128
 #define _PROGRAM_NAME "whoami"
 
-void getPrompt() 
+void getPath() 
 { 
     char cwd[1024]; 
     getcwd(cwd, sizeof(cwd)); 
-
-    printf("~:%s> ", cwd); 
+	printf("~:%s> ", cwd); 
 } 
 
 
 int main(int argc, char *argv[]){
-	int pid,
-	    pidw, 
-	    salir=0,
-	    iguales,
-	    vt,
-	    i;
+	int pid, pidw, salir=0, iguales, vt, i;
 
-	char args[T_ARGS],
-	     *argVect[128];
+	char args[T_ARGS], *argVect[128];
 
 	//Para llenar un argv
 	char delim[] = " ";
 	
-	while(!salir){
+	while(!salir)
+	{
 		argVect[0] = "./exec";
 		printf("\n");
 		char* username = getenv("USER"); 
@@ -46,7 +40,7 @@ int main(int argc, char *argv[]){
       		return EXIT_FAILURE;
     	}
 		printf("%s",hostname);
-		getPrompt();
+		getPath();
 		fgets(args, sizeof(args), stdin);
 		
 		args[strlen(args)-1] = '\0';
