@@ -19,9 +19,9 @@ int main(char argc, char * argv[])
         n = i;
     }
     ar[n]=NULL;
-
     int cont=0;
-    for(int j=0; j<nArg; ++j)
+
+    for(int j=nArg-2; j>-1; --j)
     {
         if(strcmp(ar[j], "|")==0)
         {
@@ -74,7 +74,8 @@ int main(char argc, char * argv[])
                 perror("\nError en exec\n");
             }
         }
-    }   
+    } 
+
     if(flag==1)
     {
         execvp(ar[0],ar);
