@@ -6,12 +6,18 @@
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<fcntl.h>
+#include<errno.h>
+#define READ_END    0    /* index pipe extremo escritura */
+#define WRITE_END   1 
+
+
 
 int main(char argc, char * argv[])
 {
     
     int n=0,flag=1;
     int nArg = argc;
+    int DubDup = 0;
     char *ar[argc+1];
     for (int i=0; i<(nArg); i++)
     {
@@ -40,40 +46,113 @@ int main(char argc, char * argv[])
             for(int l=0; l<n2; l++)
                 ar2[l]=ar[j+(l+1)];
 
-            int pid;
-            int fd[2];
-            if(pipe(fd)==-1)
+            for(int x=0; x<n1-1; ++x)
             {
-                perror("\nError en pipe\n");
-                exit(-1);
+                if(strcmp(ar1[x], "|")==0)
+                {
+                    DubDup = 1;
+                    cont = 0;
+                    int n3=x+1;
+                    int n4=n1-(x+1);
+                    char *ar3[n3];
+                    char *ar4[n4];
+                    for(int y=0; y<(n3-1); y++)
+                    {
+                        ar3[y]=ar1[y];
+                        cont = y;
+                    }
+                    ar3[cont+1]=NULL;
+
+                    for(int z=0; z<n4; z++)
+                        ar4[z]=ar1[x+(z+1)];
+
+
+                    int fd1[2],fd2[2];
+                    int status, pid;
+                
+                    pipe(fd1);                
+                    pid = fork();    
+                    if(pid == 0)             
+                    {      		
+                        close(fd1[READ_END]);  
+                        dup2(fd1[WRITE_END], STDOUT_FILENO); 
+                        close(fd1[WRITE_END]);
+                        //execlp("/bin/ls", "ls", "-l", NULL);
+                        execvp(ar3[0],ar3);
+                    }
+                    else                          
+                    { 
+                        close(fd1[WRITE_END]);   
+                        pipe(fd2);		
+                        pid = fork();
+                        if(pid == 0)              
+                        {
+                            close(fd2[READ_END]);                         
+                            dup2(fd1[READ_END], STDIN_FILENO);
+                            close(fd1[READ_END]);
+                            dup2(fd2[WRITE_END], STDOUT_FILENO);			
+                            close(fd2[WRITE_END]);
+                            //execlp("/bin/grep","grep", "u",NULL);
+                            execvp(ar4[0],ar4);
+                        }
+                        else
+                        {
+                            close(fd1[READ_END]);      
+                            close(fd2[WRITE_END]);    
+                            pid = fork();
+                            if(pid == 0) 
+                            {
+                                dup2(fd2[READ_END], STDIN_FILENO);
+                                close(fd2[READ_END]);  
+                                //execlp("/usr/bin/wc","wc", "-l",NULL);
+                                execvp(ar2[0],ar2);
+                            }
+                        }		        
+                    }
+                    
+                    close(fd2[READ_END]);  
+                    wait(&status);   
+                    wait(&status);	
+                    wait(&status);
+                }
             }
-            
-            
-            pid=fork();
-            if(pid==-1)
+                  
+            if(DubDup==0)
             {
-                perror("\nError en Fork\n");
-                exit(-1);
-            }
-            else if (pid==0)
-            {
-                close(0);
-                dup(fd[0]);
-                close(fd[0]);
-                close(fd[1]);
-                execvp(ar2[0],ar2);
-                perror("\nError en exec\n");
-            }
-            else
-            {
-                close(1);
-                dup(fd[1]);
-                close(fd[0]);
-                close(fd[1]);
-                execvp(ar1[0],ar1);
-                perror("\nError en exec\n");
+                int pid;
+                int fd[2];
+                if(pipe(fd)==-1)
+                {
+                    perror("\nError en pipe\n");
+                    exit(-1);
+                }
+                pid=fork();
+                if(pid==-1)
+                {
+                    perror("\nError en Fork\n");
+                    exit(-1);
+                }
+                else if (pid==0)
+                {
+                    close(0);
+                    dup(fd[0]);
+                    close(fd[0]);
+                    close(fd[1]);
+                    execvp(ar2[0],ar2);
+                    perror("\nError en exec\n");
+                }
+                else
+                {
+                    close(1);
+                    dup(fd[1]);
+                    close(fd[0]);
+                    close(fd[1]);
+                    execvp(ar1[0],ar1);
+                    perror("\nError en exec\n");
+                }
             }
         }
+
     } 
 
     if(flag==1)
