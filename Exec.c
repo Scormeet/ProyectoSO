@@ -10,15 +10,13 @@
 #define READ_END    0    /* index pipe extremo escritura */
 #define WRITE_END   1 
 
-
-
 int main(char argc, char * argv[])
 {
-    
     int n=0,flag=1;
     int nArg = argc;
-    int Pipe = 0;
+    int Pipe = 0, out=0;
     char *ar[argc+1];
+    char fileName[50];
     for (int i=0; i<(nArg); i++)
     {
         ar[i]=argv[i+1];
@@ -26,6 +24,7 @@ int main(char argc, char * argv[])
     }
     ar[n]=NULL;
     int cont=0;
+
 
     for(int j=nArg-2; j>-1; --j)
     {
@@ -45,6 +44,25 @@ int main(char argc, char * argv[])
 
             for(int l=0; l<n2; l++)
                 ar2[l]=ar[j+(l+1)];
+
+            for(int s=0; s<n2; s++)
+            {
+                if(strcmp(ar[j],">")==0)
+                {
+                    out = 1;
+                    cont = 0;
+                    char *fileName[1];
+                    fileName[0] = ar[s+1];
+                    char *ar2Aux[s+1];
+                    for(int i=0; i<j; i++)
+                    {
+                        ar2Aux[i]=ar[i];
+                        cont = i;
+                    }
+                    ar2Aux[cont+1]=NULL;
+                }
+                break;
+            }
 
             for(int x=0; x<n1-1; ++x)
             {
@@ -248,12 +266,54 @@ int main(char argc, char * argv[])
             break;
         }
 
+        if(strcmp(ar[j],">")==0)
+        {
+            out = 1;
+            cont = 0;
+            char *fileName[1];
+            fileName[0] = ar[j+1];
+            char *arAux[j+1];
+            for(int i=0; i<j; i++)
+            {
+                arAux[i]=ar[i];
+                cont = i;
+            }
+            arAux[cont+1]=NULL;
+            close(1);
+            open(fileName[0], O_CREAT|O_RDWR,S_IRWXU);
+            execvp(arAux[0],arAux);
+            perror("\nError en exec\n");
+            break;
+        }
+        /*
+        else if (strcmp(ar[j],">>")==0)
+        {
+            out = 2;
+            cont = 0;
+            char *fileName[1];
+            fileName[0] = ar[j+1];
+            char *arAux[j+1];
+            for(int i=0; i<j; i++)
+            {
+                arAux[i]=ar[i];
+                cont = i;
+            }
+            arAux[cont+1]=NULL;
+            close(1);
+            open(fileName[0], O_CREAT|O_RDWR,S_IRWXU);
+            execvp(arAux[0],arAux);
+            perror("\nError en exec\n");
+            break;
+            
+        }*/
+        
     } 
 
-    if(Pipe==0)
+    if(Pipe==0 && out==0)
     {
         execvp(ar[0],ar);
         perror("\nError en exec\n");
+        
     }
 
 return 0;
