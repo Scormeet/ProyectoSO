@@ -17,7 +17,7 @@ int main(char argc, char * argv[])
     
     int n=0,flag=1;
     int nArg = argc;
-    int DubDup = 0;
+    int Pipe = 0;
     char *ar[argc+1];
     for (int i=0; i<(nArg); i++)
     {
@@ -31,7 +31,7 @@ int main(char argc, char * argv[])
     {
         if(strcmp(ar[j], "|")==0)
         {
-            flag=0;
+            Pipe=1;
             int n1 = j+1;
             int n2 = (nArg)-(j+1);
             char *ar1[n1];
@@ -50,7 +50,7 @@ int main(char argc, char * argv[])
             {
                 if(strcmp(ar1[x], "|")==0)
                 {
-                    DubDup = 1;
+                    Pipe = 2;
                     cont = 0;
                     int n3=x+1;
                     int n4=n1-(x+1);
@@ -66,58 +66,152 @@ int main(char argc, char * argv[])
                     for(int z=0; z<n4; z++)
                         ar4[z]=ar1[x+(z+1)];
 
-
-                    int fd1[2],fd2[2];
-                    int status, pid;
-                
-                    pipe(fd1);                
-                    pid = fork();    
-                    if(pid == 0)             
-                    {      		
-                        close(fd1[READ_END]);  
-                        dup2(fd1[WRITE_END], STDOUT_FILENO); 
-                        close(fd1[WRITE_END]);
-                        //execlp("/bin/ls", "ls", "-l", NULL);
-                        execvp(ar3[0],ar3);
-                    }
-                    else                          
-                    { 
-                        close(fd1[WRITE_END]);   
-                        pipe(fd2);		
-                        pid = fork();
-                        if(pid == 0)              
+                    for(int a=0; a<n4-1; ++a)
+                    {
+                        if(strcmp(ar4[a],"|")==0)
                         {
-                            close(fd2[READ_END]);                         
-                            dup2(fd1[READ_END], STDIN_FILENO);
-                            close(fd1[READ_END]);
-                            dup2(fd2[WRITE_END], STDOUT_FILENO);			
-                            close(fd2[WRITE_END]);
-                            //execlp("/bin/grep","grep", "u",NULL);
-                            execvp(ar4[0],ar4);
-                        }
-                        else
-                        {
-                            close(fd1[READ_END]);      
-                            close(fd2[WRITE_END]);    
-                            pid = fork();
-                            if(pid == 0) 
+                            Pipe=3;
+                            cont = 0;
+                            int n5 = a+1;
+                            int n6 = n4-(a+1);
+                            char *ar5[n5];
+                            char *ar6[n6];
+                            for(int b=0; b<(n5-1); b++)
                             {
-                                dup2(fd2[READ_END], STDIN_FILENO);
-                                close(fd2[READ_END]);  
-                                //execlp("/usr/bin/wc","wc", "-l",NULL);
-                                execvp(ar2[0],ar2);
+                                ar5[b]=ar4[b];
+                                cont = b;
                             }
-                        }		        
+                            ar5[cont+1]=NULL;   
+
+                            for(int c=0; c<n6; c++)
+                                ar6[c]=ar4[a+(c+1)];
+                            
+                            int pid,status;
+                            int fd1[2], fd2[2], fd3[2];
+                            pipe(fd1);                
+                            pid = fork();    
+                            if(pid == 0)             
+                            {      		
+                                close(fd1[READ_END]);  
+                                dup2(fd1[WRITE_END], STDOUT_FILENO); 
+                                close(fd1[WRITE_END]);
+                                //execlp("/bin/ls", "ls", "-l", NULL);
+                                execvp(ar3[0],ar3);
+                            }
+                            else                          
+                            { 
+                                close(fd1[WRITE_END]);   
+                                pipe(fd2);		
+                                pid = fork();
+                                if(pid == 0)              
+                                {
+                                    close(fd2[READ_END]);                         
+                                    dup2(fd1[READ_END], STDIN_FILENO);
+                                    close(fd1[READ_END]);
+                                    dup2(fd2[WRITE_END], STDOUT_FILENO);			
+                                    close(fd2[WRITE_END]);
+                                    //execlp("/bin/grep","grep", "u",NULL);
+                                    execvp(ar5[0],ar5);
+                                }
+                                else
+                                {     
+                                    close(fd2[WRITE_END]);   
+                                    pipe(fd3); 
+                                    pid = fork();
+                                    if(pid == 0) 
+                                    {
+                                        close(fd3[READ_END]);
+                                        dup2(fd2[READ_END], STDIN_FILENO);
+                                        close(fd2[READ_END]);  
+                                        dup2(fd3[WRITE_END], STDOUT_FILENO);
+                                        close(fd3[WRITE_END]);
+                                        //execlp("/usr/bin/wc","wc", "-l",NULL);
+                                        execvp(ar6[0],ar6);
+                                    }
+                                    else
+                                    {
+                                        close(fd2[READ_END]);      
+                                        close(fd3[WRITE_END]);    
+                                        pid = fork();
+                                        if(pid == 0) 
+                                        {
+                                            dup2(fd3[READ_END], STDIN_FILENO);
+                                            close(fd3[READ_END]);  
+                                            //execlp("/usr/bin/wc","wc", "-l",NULL);
+                                            execvp(ar2[0],ar2);
+                                        }
+                                    }
+                                    
+                                }
+                                close(fd2[READ_END]); 		        
+                            }
+                            
+                            close(fd3[READ_END]);  
+
+                            wait(&status);   
+                            wait(&status);	
+                            wait(&status);
+                            wait(&status);
+                            
+                            break;
+                        }
                     }
+
+                    if(Pipe==2)
+                    {
+                        int fd1[2],fd2[2];
+                        int status, pid;
                     
-                    close(fd2[READ_END]);  
-                    wait(&status);   
-                    wait(&status);	
-                    wait(&status);
+                        pipe(fd1);                
+                        pid = fork();    
+                        if(pid == 0)             
+                        {      		
+                            close(fd1[READ_END]);  
+                            dup2(fd1[WRITE_END], STDOUT_FILENO); 
+                            close(fd1[WRITE_END]);
+                            //execlp("/bin/ls", "ls", "-l", NULL);
+                            execvp(ar3[0],ar3);
+                        }
+                        else                          
+                        { 
+                            close(fd1[WRITE_END]);   
+                            pipe(fd2);		
+                            pid = fork();
+                            if(pid == 0)              
+                            {
+                                close(fd2[READ_END]);                         
+                                dup2(fd1[READ_END], STDIN_FILENO);
+                                close(fd1[READ_END]);
+                                dup2(fd2[WRITE_END], STDOUT_FILENO);			
+                                close(fd2[WRITE_END]);
+                                //execlp("/bin/grep","grep", "u",NULL);
+                                execvp(ar4[0],ar4);
+                            }
+                            else
+                            {
+                                close(fd1[READ_END]);      
+                                close(fd2[WRITE_END]);    
+                                pid = fork();
+                                if(pid == 0) 
+                                {
+                                    dup2(fd2[READ_END], STDIN_FILENO);
+                                    close(fd2[READ_END]);  
+                                    //execlp("/usr/bin/wc","wc", "-l",NULL);
+                                    execvp(ar2[0],ar2);
+                                }
+                            }		        
+                        }
+                        
+                        close(fd2[READ_END]);  
+                        wait(&status);   
+                        wait(&status);	
+                        wait(&status);
+                    }
+                    break;
                 }
             }
                   
-            if(DubDup==0)
+            if(Pipe==1)
             {
                 int pid;
                 int fd[2];
@@ -151,11 +245,12 @@ int main(char argc, char * argv[])
                     perror("\nError en exec\n");
                 }
             }
+            break;
         }
 
     } 
 
-    if(flag==1)
+    if(Pipe==0)
     {
         execvp(ar[0],ar);
         perror("\nError en exec\n");
