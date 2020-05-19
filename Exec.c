@@ -7,11 +7,11 @@
 #include<sys/wait.h>
 #include<fcntl.h>
 #include<errno.h>
-#define READ_END    0    /* index pipe extremo escritura */
+#define READ_END    0   
 #define WRITE_END   1 
 
 
-void WithoutOut(char **ar, int nArg)
+void WithoutOutput(char **ar, int nArg)
 {
     int Pipe = 0;
     int cont=0;
@@ -247,8 +247,9 @@ void WithoutOut(char **ar, int nArg)
     }
 }
 
-void WithOut(char **ar, int nArg, char **fileName)
+void WithOutput(char **ar, int nArg, char **fileName, int flag)
 {
+    FILE *archivo;
     int Pipe = 0, out=0;
     int cont=0;
     for(int j=nArg-2; j>-1; --j)
@@ -364,8 +365,18 @@ void WithOut(char **ar, int nArg, char **fileName)
                                             close(fd3[READ_END]);  
                                             //execlp("/usr/bin/wc","wc", "-l",NULL);
                                             close(1);
-                                            open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
-                                            execvp(ar2[0],ar2);
+                                            if(flag==1)
+                                            {
+                                                open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
+                                                execvp(ar2[0],ar2);
+                                            }
+                                            else
+                                            {
+                                                archivo = fopen (fileName[0], "a+t" ); //parámetro para escritura al final y para file tipo texto
+ 	                                            while((execvp(ar2[0],ar2), getchar()) != '\n')
+ 		                                            fputc(execvp(ar2[0],ar2), archivo);
+ 	                                            fclose (archivo);
+                                            }
                                         }
                                     }
                                     
@@ -425,8 +436,19 @@ void WithOut(char **ar, int nArg, char **fileName)
                                     close(fd2[READ_END]);  
                                     //execlp("/usr/bin/wc","wc", "-l",NULL);
                                     close(1);
-                                    open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
-                                    execvp(ar2[0],ar2);
+                                    if(flag==1)
+                                    {
+                                        open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
+                                        execvp(ar2[0],ar2);
+                                    }
+                                    else
+                                    {
+                                        archivo = fopen (fileName[0], "a+t" ); //parámetro para escritura al final y para file tipo texto
+ 	                                    while((execvp(ar2[0],ar2), getchar()) != '\n')
+ 		                                    fputc(execvp(ar2[0],ar2), archivo);
+ 	                                    fclose (archivo);
+                                    }
+                                    
                                 }
                             }		        
                         }
@@ -461,7 +483,15 @@ void WithOut(char **ar, int nArg, char **fileName)
                     close(0);
                     dup(fd[0]);
                     close(1);
-                    open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
+                    if(flag==1)
+                        open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
+                    else
+                    {
+                        archivo = fopen (fileName[0], "a+t" ); //parámetro para escritura al final y para file tipo texto
+ 	                    while((execvp(ar2[0],ar2), getchar()) != '\n')
+ 		                    fputc(execvp(ar2[0],ar2), archivo);
+ 	                    fclose (archivo);
+                    }
                     close(fd[0]);
                     close(fd[1]);
                     execvp(ar2[0],ar2);
@@ -485,9 +515,19 @@ void WithOut(char **ar, int nArg, char **fileName)
     if(Pipe==0)
     {
         close(1);
-        open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
-        execvp(ar[0],ar);
-        perror("\nError en exec\n");
+        if(flag==1)
+        {
+            open(fileName[0], O_CREAT|O_RDWR,S_IRWXU,S_IRWXU);
+            execvp(ar[0],ar);
+            perror("\nError en exec\n");
+        }
+        else
+        {
+            archivo = fopen (fileName[0], "a+t" ); //parámetro para escritura al final y para file tipo texto
+ 	        while((execvp(ar[0],ar), getchar()) != '\n')
+ 		        fputc(execvp(ar[0],ar), archivo);
+ 	        fclose (archivo);
+        }
         
     }
 }
@@ -507,7 +547,7 @@ int main(char argc, char * argv[])
     int nArgAux = 0;
     for(int j=0; j<nArg-1; j++)
     {
-        if((strcmp(ar[j],">")==0) || (strcmp(ar[j],">>")==0))
+        if((strcmp(ar[j],">")==0))
         {   
             out=1;
             int count = 0;
@@ -520,13 +560,44 @@ int main(char argc, char * argv[])
                 count = i;
             }
             arAux[count+1]=NULL;
-            WithOut(arAux, (j+1), fileName);
+            WithOutput(arAux, (j+1), fileName, out);
+            break;
+        }
+        else if((strcmp(ar[j],">>")==0))
+        {
+            out=2;
+            int count = 0;
+            char *fileName[1];
+            fileName[0] = ar[j+1];
+            char *arAux[j+1];
+            for(int i=0; i<j; i++)
+            {
+                arAux[i]=ar[i];
+                count = i;
+            }
+            arAux[count+1]=NULL;
+            WithOutput(arAux, (j+1), fileName, out);
+            break;
+
+        }
+        else if((strcmp(ar[j],"<")==0))
+        {
+            out=1;
+            int count = 0;
+            char *arAux[nArg];
+            for(int i=0; i<j; i++)  
+                arAux[i]=ar[i];
+            for(int k=j; k<nArg-1; k++)
+                arAux[k]=ar[k+1];
+            for(int a=0; a<nArg; a++)
+                printf("%s ",arAux[a]);
+            WithoutOutput(arAux, (nArg-1));
             break;
         }
     }
 
     if(out==0)
-        WithoutOut(ar, nArg);
+        WithoutOutput(ar, nArg);
 
     return 0;
 }
